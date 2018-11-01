@@ -1,0 +1,182 @@
+---
+title: "SabCLab1_MSiA400"
+author: "Sabarish Chockalingam"
+date: "October 31, 2018"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# MSiA 400 - Lab Assignment 1
+## Problem 1
+```{r}
+# install.packages('expm')
+library('expm')
+# loading text?file
+markov <- read.table('markov100.txt', header=FALSE)
+#make data into matrix
+P = as.matrix(markov)
+
+#creating inital vector, in state 1
+a = rep(0,100)
+a[1]=1
+
+prob5 = a%*%(P%^%10)
+
+```
+#### 1 a) probability  of being in state 5 after 10 transitions from state 1
+```{r}
+#probability  of being in state 5 after 10 transitions from state 1
+prob5[5]
+```
+```{r}
+# creating different start vector 
+a123 = rep(0,100)
+a123[1:3]=c(1/3,1/3,1/3)
+
+prob10 = a123%*%(P%^%10)
+```
+#### 1 b) probability  of being in state 10 after 10 transitions from states 1,2 and 3 being at equal probability
+```{r}
+prob10[10]
+```
+#### 1 c) Steady state probability of being in state 1
+```{r}
+# calculating steady-state probability of state 1
+#Subtracting Identity matrix from transpose of P
+Q <- t(P)-diag(ncol(P))
+#Replacing last row with sum(pi) = 1 constraint
+Q[nrow(Q),]=rep(1,ncol(Q))
+#right hand side of Q*pi
+rhs = c(rep(0,ncol(Q)-1),1)
+#Solving for Steady state probabilities
+Pi = solve(Q)%*%rhs
+Pi[1]
+```
+
+
+```{r}
+# calculating mean first passage time to 100
+
+# removing rows and columns corresponding to state 100
+B = P[-100,-100]
+
+# subtracting B from Identity matrix
+Q = diag(nrow(B))-B
+
+# vector of ones
+e = rep(1,nrow(B))
+
+# calculating mean first passage times
+m = solve(Q)%*%e
+```
+
+#### 1 d) Mean First passage time from state 1 to state 100
+```{r}
+m[1]
+```
+## Problem 2
+#### 2 a) Contructing Traffic Matrix
+```{r}
+#loading webtraffic.txt
+wb = read.table('webtraffic.txt',header=TRUE)
+
+# Total Traffic Matrix
+colsumwb = colSums(wb)
+Traffic = matrix(colSums(wb),9,9,byrow = TRUE)
+
+
+# Displaying Traffic Matrix
+Traffic
+
+```
+#### 2 b) One step probability transition matrix
+```{r}
+# From the above matrix it can be seen row 9 and column 1 are filled with 0's.
+
+Traffic[9,1] = 1000
+
+# Constructing one step transi?i?n matrix (divide each element of row by its sum)
+P = Traffic/rowSums(Traffic)
+
+#Displaying transition matrix
+P
+```
+#### 2 c) Steady State Probability vector Pi
+```{r}
+# calculating steady-state probability vector
+# Subtracting Identity matrix from transp?s? of P
+Q = t(P)-diag(ncol(P))
+# Replacing last row with sum(pi) = 1 constraint
+Q[nrow(Q),]=rep(1,ncol(Q))
+# right hand side of Q*pi
+rhs = c(rep(0,ncol(Q)-1),1)
+# Solving for Steady state probabilities
+Pi = solve(Q)%*%rhs
+
+# Displaying vector
+Pi
+```
+#### 2)d) Average time spent on website
+```{r}
+# calculating mean first passage time to 9 (last page)
+
+# removing rows and columns corresponding to page 9
+B = P[-9,-9]
+
+# subtracting B from Identity matrix
+Q = diag(nrow(B))-B
+
+# vector of average times
+e = c(0.1,2,3,5,5,3,3,2 )
+
+# calculating mean first passage times
+m = solve(Q)%*%e
+
+# average time spent on website is mean first time passage from page 1
+m[1]
+```
+#### 2 e) Checking if adding links to page 6,7 helps uniformly spread traffic.
+```{r}
+#Calculating new ?u?going Traffic %
+dtraff23 = Traffic[2,3]*0.3
+dtraff24 = Traffic[2,4]*0.2
+Traffic2 = Traffic
+Traffic2[2,3]=Traffic[2,3]-dtraff23
+Traffic2[2,6]=Traffic[2,6]+dtraff23
+Traffic2[2,4]=Traffic[2,4]-dtraff24
+Traffic2[2,7]=Traffic[2,7]+dtraff24
+
+# Constructing one?s?ep transition matrix (divide each element of row by its sum)
+P2 = Traffic2/rowSums(Traffic2)
+
+# calculating steady-state probability vector
+# Subtracting Identity matrix from transpose of P
+Q2 = t(P2)-diag(ncol(P2))
+# Replacing last row with sum(pi) = 1 ?o?straint
+Q2[nrow(Q2),]=rep(1,ncol(Q2))
+# right hand side of Q*pi
+rhs2 = c(rep(0,ncol(Q2)-1),1)
+# Solving for Steady state probabilities
+Pi2 = solve(Q2)%*%rhs2
+
+# Displaying vector
+Pi2
+
+```
+##### comparing
+```{r}
+# comparing
+var.test(Pi,Pi2)
+```
+
+```{r}
+varPi=var(Pi)
+varPi2=var(Pi2)
+print(paste('Variance of Steady State Vector var(Pi):',varPi))
+print(paste('Variance after adding links var(Pi2):',varPi2))
+```
+

@@ -1,0 +1,146 @@
+---
+title: "SabCMSiA400LabAsgnmnt2"
+author: "Sabarish Chockalingam"
+date: "November 13, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# MSiA 400 - Lab Assignment 2
+## Problem 1
+```{r}
+library(expm)
+
+redwine <- read.table('redwine.txt',header=TRUE)
+RSmean <- mean(redwine$RS,na.rm=T)
+SDmean <- mean(redwine$SD,na.rm=T)
+RSmean
+SDmean
+```
+## Problem 2
+```{r}
+sdfit <- lm(SD~FS,data=redwine, na.action=na.omit)
+coefficients(sdfit)
+```
+## Problem 3
+```{r}
+naFS <- redwine['FS'][is.na(redwine$SD),]
+# getting predicted values
+predSD <- predict(sdfit,data.frame(FS=naFS))
+
+# mean before imputation
+print(paste("Average of SD before imputation: ",mean(redwine$SD[!is.na(redwine$SD)])))
+
+newSD <- redwine$SD
+# replacing na's with predicted values
+newSD[is.na(newSD)]<-predSD
+
+# getting mean with predicted values
+print(paste("Average of SD after imputation: ",mean(newSD)))
+```
+## Problem 4
+```{r}
+# function for average imputation
+avg.imp <- function (a, avg){
+        missing <- is.na(a)
+        imputed <- a
+        imputed[missing] <- avg
+        return (imputed)
+   }
+
+newRS <- redwine$RS
+# average before imputation
+print(paste('Average of RS before imputation: ',mean(na.omit(newRS))))
+newRS <- avg.imp(newRS,mean(na.omit(newRS)))
+# average after imputation
+print(paste('Average RS after imputation: ',mean(newRS)))
+
+```
+## Problem 5
+```{r}
+# replacing imputed columns in original data
+redwine$SD <- newSD
+redwine$RS <- newRS
+
+winemodel <- lm(redwine$QA~.,data=redwine)
+
+coefficients(winemodel)
+winecoeffs <- data.frame(coefficients(winemodel))
+
+summary(winemodel)
+```
+## Problem 7
+```{r}
+# install.packages('DAAG')
+library(DAAG)
+winemodel = lm(QA~.,data=redwine)
+winemodelcv <- CVlm(form=winemodel, data = redwine, m=5,plotit=c('Observed','Residuals'),printit=F)
+attr(winemodelcv,"ms")
+```
+## Problem 7 - Repeating 5 fold CV 20 times
+```{r}
+#######Function for creating list of K index sets for K-fold CV##################
+CVInd <- function(n,K) {  #n is sample size; K is number of parts; returns K-length list of indices for each part
+   m<-floor(n/K)  #approximate size of each part
+   r<-n-m*K  
+   I<-sample(n,n)  #random reordering of the indices
+   Ind<-list()  #will be list of indices for all K parts
+   length(Ind)<-K
+   for (k in 1:K) {
+      if (k <= r) kpart <- ((m+1)*(k-1)+1):((m+1)*k)  
+         else kpart<-((m+1)*r+m*(k-r-1)+1):((m+1)*r+m*(k-r))
+      Ind[[k]] <- I[kpart]  #indices for kth part of data
+   }
+   Ind
+}
+####################################################################
+
+Nrep<-20 #number of replicates of CV
+K<-5  #K-fold CV on each replicate
+n=nrow(redwine)
+y<-redwine$QA
+p<-ncol(redwine)-1 # number of predictors
+SSE<-matrix(0,Nrep,1)
+MSE<-matrix(0,Nrep,1)
+for (j in 1:Nrep) {
+  Ind<-CVInd(n,K)
+  yhat<-y;
+  for (k in 1:K) {
+     out1<-lm(QA~.,redwine[-Ind[[k]],])
+     yhat[Ind[[k]]]<-as.numeric(predict(out1,redwine[Ind[[k]],]))
+  } #end of k loop
+  SSE[j,]=sum((y-yhat)^2)
+  #MSE[j,]=sum((y-yhat)^2)/(length(y)-p-1)
+} #end of j loop
+#SSE
+avgSSE<-apply(SSE,2,mean)
+#avgMSE<-apply(MSE,2,mean)
+print(paste("Average SSE from 20 runs of CV: ",avgSSE))
+#print(paste("Average MSE from 20 runs of CV: ",avgMSE))
+```
+
+## Problem 8
+```{r}
+# calculating mean and average of seemingly insiginificant variable
+phmean <- mean(redwine$PH)
+phsd <- sd(redwine$PH)
+
+# calculating lower and upper limit of outlier threshold
+phlow <- phmean - 3*phsd
+phhi <- phmean + 3*phsd
+
+redwine2 <- redwine[redwine$PH>phlow & redwine$PH<phhi,]
+dim(redwine2)
+```
+## Problem 9
+```{r}
+# calculating new winemodel after remove outlying PH values
+winemodel2 <- lm(QA~., data=redwine2)
+summary(winemodel2)
+```
+```{r}
+sum(c(0.38,0.41,0.38,0.47,0.48 ))/5
+```
+

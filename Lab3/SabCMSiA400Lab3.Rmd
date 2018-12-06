@@ -1,0 +1,37 @@
+---
+title: "SabCMSiA400Lab3Assign"
+author: "Sabarish Chockalingam"
+date: "December 5, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Problem 2
+```{r}
+library(quantreg)
+gasdata <- read.csv('gas_mileage.csv')
+gasdata<-gasdata[!is.na(gasdata$Torque),] ## removing na's
+fit1 <- rq(Mpg~.,tau=seq(0.05,0.95,0.05), data=gasdata) ## rqfit
+sfm <- summary(fit1) ## summary
+
+plot(fit1,mfrow=c(1,2)) ## plot did not work for sfm, so just used fit1
+
+fit2 <- rq(Mpg~.,tau=0.5, data=gasdata)
+summary(fit2, se="boot")
+```
+
+# Problem 3
+```{r}
+cardata <- read.csv('car.csv')
+library(e1071)
+svm = svm(factor(y)~ ., data = cardata)
+plot(svm,cardata,income~car_age )
+
+newdata <- with(cardata, data.frame(income=50, car_age = 5))
+newdata$ypred<-predict(svm, newdata = newdata, type = "response")
+print(paste("Response for carage=5 and income=50:",newdata$ypred))
+```
+
+
